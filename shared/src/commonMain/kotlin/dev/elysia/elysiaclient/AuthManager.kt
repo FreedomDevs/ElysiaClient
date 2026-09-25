@@ -25,10 +25,39 @@ object AuthManager {
     data class User(
         val id: String,
         val name: String,
-        val groups: List<String>,
         val permissions: Map<String, List<String>>,
+        val groups: List<Group>,
         val createdAt: String,
         val updatedAt: String
+    )
+
+    @Serializable
+    data class Group(
+        val id: String,
+        val name: String,
+        val permissions: List<String>,
+        val createdAt: String,
+        val updatedAt: String
+    )
+
+    @Serializable
+    data class Meta(
+        val code: String,
+        val traceId: String,
+        val timestamp: String
+    )
+
+    @Serializable
+    data class ApiResponse<T>(
+        val data: T,
+        val message: String,
+        val meta: Meta
+    )
+
+    @Serializable
+    data class AccessToken(
+        @SerialName("token")
+        val accessToken: String
     )
 
     private const val EDATA_FOLDER = "EData"
@@ -36,8 +65,19 @@ object AuthManager {
     private lateinit var eData: EData
 
     private var currentUser: User? = null
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+    }
+
     private val executableDirectory = AppPaths.executableDirectory
     private val eDataFolder = executableDirectory.resolve(EDATA_FOLDER)
+
+    private var onAuthStateChanged: (() -> Unit)? = null
+
+    fun setOnAuthStateChanged(listener: () -> Unit) {
+        onAuthStateChanged = listener
+    }
 
     fun init(): Boolean {
         ELogger.info("Initializing AuthManager")
@@ -88,55 +128,18 @@ object AuthManager {
         return currentUser
     }
 
-    fun getAndUpdateCurrentUser(): User? {
-        if (eData.currentSession == null || getCurRefreshToken() == null) {
-            return null
-        }
-
-        val accessToken = getAccessToken() ?: return null
-
-        try {
-            val client = HttpClient.newHttpClient()
-
-            val request = HttpRequest.newBuilder()
-                .uri(URI.create(Config.API_URL + "/users/me"))
-                .header("Authorization", "Bearer $accessToken")
-                .GET()
-                .build()
-
-            val response = client.send(
-                request,
-                HttpResponse.BodyHandlers.ofString()
-            )
-
-            if (response.statusCode() !in 200..299) {
-                ELogger.warn("Failed to fetch current user: ${response.statusCode()}")
-                return null
-            }
-
-            currentUser = Json.decodeFromString<User>(response.body())
-            return currentUser
-        } catch (e: Exception) {
-            ELogger.error("Failed to check auth: ${e.message}")
-            return null
-        }
-    }
-
     fun getAccessToken(): String? {
-        @Serializable
-        data class AccessToken(
-            @SerialName("token")
-            val accessToken: String
-        )
+        if (!::eData.isInitialized) {
+            ELogger.warn("Attempted to get access token before EData initialization")
+            return null
+        }
 
         if (eData.currentSession == null) {
             ELogger.warn("Attempted to get access token without active session")
             return null
         }
 
-        try {
-            val client = HttpClient.newHttpClient()
-
+        return try {
             val refreshToken = getCurRefreshToken()
 
             if (refreshToken == null) {
@@ -156,36 +159,46 @@ object AuthManager {
                 )
                 .build()
 
-            val response = client.send(
+            val response = HttpClient.newHttpClient().send(
                 request,
                 HttpResponse.BodyHandlers.ofString()
             )
 
             if (response.statusCode() !in 200..299) {
-                ELogger.warn("Access token refresh failed with status ${response.statusCode()}")
+                ELogger.warn(
+                    "Access token refresh failed with status ${response.statusCode()}"
+                )
                 return null
             }
 
-            val accessToken = Json.decodeFromString<AccessToken>(response.body())
+            val apiResponse =
+                json.decodeFromString<ApiResponse<AccessToken>>(response.body())
 
-            ELogger.info("Access token refreshed successfully")
+            ELogger.info(
+                "Access token refreshed successfully (${apiResponse.meta.code})"
+            )
 
-            return accessToken.accessToken
+            apiResponse.data.accessToken
         } catch (e: Exception) {
             ELogger.error("Failed to refresh access token: ${e.message}")
-            return null
+            null
         }
     }
 
-    @Suppress("unused")
-    fun isAuth(): Boolean {
-        if (eData.currentSession == null || getCurRefreshToken() == null) {
-            return false
+    fun getAndUpdateCurrentUser(): User? {
+        if (!::eData.isInitialized) {
+            ELogger.warn("Attempted to fetch current user before EData initialization")
+            return null
         }
 
-        val accessToken = getAccessToken() ?: return false
+        if (eData.currentSession == null) {
+            ELogger.warn("Attempted to fetch current user without active session")
+            return null
+        }
 
-        try {
+        val accessToken = getAccessToken() ?: return null
+
+        return try {
             val client = HttpClient.newHttpClient()
 
             val request = HttpRequest.newBuilder()
@@ -194,26 +207,66 @@ object AuthManager {
                 .GET()
                 .build()
 
+            ELogger.info("Fetching current user")
+
             val response = client.send(
                 request,
                 HttpResponse.BodyHandlers.ofString()
             )
 
             if (response.statusCode() !in 200..299) {
-                ELogger.warn("Failed to fetch current user: ${response.statusCode()}")
-                return false
+                ELogger.warn(
+                    "Failed to fetch current user: ${response.statusCode()}"
+                )
+                return null
             }
 
-            currentUser = Json.decodeFromString<User>(response.body())
+            val apiResponse = Json.decodeFromString<ApiResponse<User>>(response.body())
 
-            return true
+            currentUser = apiResponse.data
+
+            ELogger.info("Current user updated: ${currentUser?.name}")
+
+            currentUser
         } catch (e: Exception) {
-            ELogger.error("Failed to check auth: ${e.message}")
-            return false
+            ELogger.error("Failed to fetch current user: ${e.message}")
+            null
         }
     }
 
-    @Suppress("unused")
+    fun isAuth(): Boolean {
+        ELogger.info("Checking authentication state")
+
+        if (!::eData.isInitialized) {
+            ELogger.warn("EData is not initialized")
+            return false
+        }
+
+        if (eData.currentSession == null) {
+            ELogger.info("No active authentication session")
+            currentUser = null
+            return false
+        }
+
+        if (getCurRefreshToken() == null) {
+            ELogger.warn("Current refresh token not found")
+            currentUser = null
+            return false
+        }
+
+        val user = getAndUpdateCurrentUser()
+
+        if (user == null) {
+            ELogger.warn("Authentication check failed")
+            currentUser = null
+            return false
+        }
+
+        ELogger.info("Authentication successful: ${user.name}")
+
+        return true
+    }
+
     fun logOut(): Boolean {
         if (!::eData.isInitialized) {
             ELogger.warn("Attempted to logout before EData initialization")
@@ -222,6 +275,7 @@ object AuthManager {
 
         try {
             eData.currentSession = null
+            currentUser = null
 
             if (!writeEDataManifest()) {
                 ELogger.error("Failed to save EData after logout")
@@ -229,6 +283,9 @@ object AuthManager {
             }
 
             ELogger.info("User logged out successfully")
+
+            onAuthStateChanged?.invoke()
+
             return true
         } catch (e: Exception) {
             ELogger.error("Logout failed: ${e.message}")
@@ -271,6 +328,8 @@ object AuthManager {
             eData.sessions = newSessions
             eData.currentSession = randUuid.toString()
 
+            ELogger.info("Current session set to: ${eData.currentSession}")
+
             if (!writeEDataManifest()) {
                 ELogger.error("Failed to save EData manifest after creating session")
                 return false
@@ -293,6 +352,8 @@ object AuthManager {
         try {
             val fileManifest = eDataFolder.resolve(EDATA_MANIFEST)
             val data = Json.encodeToString(eData)
+
+            ELogger.info("Writing EData: $data")
 
             Files.writeString(fileManifest, data)
 
@@ -462,6 +523,7 @@ object AuthManager {
                 val query = exchange.requestURI.query
 
                 if (query == null) {
+                    ELogger.warn("Authentication callback received without query")
                     sendResponse(exchange, errorHtml())
                     return
                 }
@@ -473,14 +535,31 @@ object AuthManager {
                     ?.getOrNull(1)
 
                 if (token.isNullOrEmpty()) {
+                    ELogger.warn("Authentication callback received without token")
                     sendResponse(exchange, errorHtml())
                     return
                 }
 
+                ELogger.info("Authentication callback received")
+
                 if (!writeEDataRefreshTokenAndSetCurrentSession(token)) {
+                    ELogger.error("Failed to save authentication token")
                     sendResponse(exchange, errorHtml())
                     return
                 }
+
+                if (!isAuth()) {
+                    ELogger.warn("Received authentication token is invalid")
+
+                    logOut()
+
+                    sendResponse(exchange, errorHtml())
+                    return
+                }
+
+                ELogger.info("Authentication completed successfully")
+
+                onAuthStateChanged?.invoke()
 
                 sendResponse(exchange, successHtml())
             } catch (e: Exception) {
