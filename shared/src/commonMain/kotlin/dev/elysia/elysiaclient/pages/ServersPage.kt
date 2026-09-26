@@ -8,49 +8,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.elysia.elysiaclient.components.ServerCard
 import dev.elysia.elysiaclient.components.ServersHeader
-import dev.elysia.elysiaclient.components.Sidebar
 import dev.elysia.elysiaclient.data.fakeServers
-import dev.elysia.elysiaclient.navigation.AppPage
 
 @Composable
-fun ServersPage(
-    onSettings: () -> Unit,
-    onLogout: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxSize()
+fun ServersPage() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
     ) {
-        Sidebar(
-            currentPage = AppPage.Servers,
-            onServers = {},
-            onSettings = onSettings,
-            onLogout = onLogout,
-        )
+        ServersHeader()
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
+        Spacer(Modifier.height(30.dp))
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            ServersHeader()
-
-            Spacer(Modifier.height(30.dp))
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(
-                    items = fakeServers,
-                    key = { it.id },
-                ) { server ->
-                    ServerCard(
-                        server = server,
-                        onPlay = {
-                            println("Launching ${it.id}")
-                        },
-                    )
-                }
+            items(
+                items = fakeServers,
+                key = { it.id },
+            ) { server ->
+                ServerCard(
+                    server = server,
+                    onPlay = {
+                        println("Launching ${it.id}")
+                    },
+                )
             }
         }
     }

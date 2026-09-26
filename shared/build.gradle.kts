@@ -23,6 +23,9 @@ kotlin {
 
             implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+
+            implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+            implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
