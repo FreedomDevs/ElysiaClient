@@ -1,0 +1,10 @@
+package dev.elysia.elysiaclient.api
+
+interface PluginLogger {
+
+    fun info(message: String)
+
+    fun warn(message: String)
+
+    fun error(message: String)
+}

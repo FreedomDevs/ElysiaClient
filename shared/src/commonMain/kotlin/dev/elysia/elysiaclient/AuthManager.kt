@@ -759,19 +759,4 @@ object AuthManager {
     """.trimIndent()
         }
     }
-
-
-    //    private object AppPaths {
-//        val executableDirectory: Path
-//            get() = Path.of(
-//                ProcessHandle.current().info().command().orElseThrow()
-//            ).toAbsolutePath().parent
-//    }
-    private object AppPaths {
-        val executableDirectory: Path
-            get() = Path.of(
-                System.getProperty("user.home"),
-                ".elysiaclient"
-            )
-    }
 }

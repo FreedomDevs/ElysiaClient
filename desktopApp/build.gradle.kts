@@ -12,6 +12,7 @@ kotlin {
 
 dependencies {
     implementation(project(":shared"))
+    implementation(project(":plugin-api"))
 
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutinesSwing)

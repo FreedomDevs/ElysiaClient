@@ -34,3 +34,5 @@ dependencyResolutionManagement {
 
 include(":desktopApp")
 include(":shared")
+include(":plugin-api")
+include(":test-plugin")

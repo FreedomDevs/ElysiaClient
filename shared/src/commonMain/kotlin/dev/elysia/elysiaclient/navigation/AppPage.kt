@@ -8,4 +8,8 @@ sealed interface AppPage {
     data class TrustedServer(
         val serverId: String,
     ) : AppPage
+
+    data class Plugin(
+        val pageId: String,
+    ) : AppPage
 }

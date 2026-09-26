@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import coil3.compose.AsyncImage
+import dev.elysia.elysiaclient.api.server.TrustedServer
 import dev.elysia.elysiaclient.theme.ElysiaAccent
 import dev.elysia.elysiaclient.theme.ElysiaMuted
 import dev.elysia.elysiaclient.theme.ElysiaSurface

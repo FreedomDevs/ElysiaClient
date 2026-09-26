@@ -1,20 +1,28 @@
 package dev.elysia.elysiaclient
 
-import App
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import dev.elysia.elysiaclient.plugins.PluginManager
 
 fun main() {
     if (!AuthManager.init()) {
         return
     }
 
+    val pluginManager = PluginManager()
+
+    pluginManager.loadPlugins()
+
     application {
         Window(
-            onCloseRequest = ::exitApplication,
+            onCloseRequest = {
+                pluginManager.disablePlugins()
+                exitApplication()
+            },
             title = "ElysiaClient",
         ) {
-            App()
+            App(
+            )
         }
     }
 }

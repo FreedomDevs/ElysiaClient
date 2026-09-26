@@ -1,24 +1,17 @@
 package dev.elysia.elysiaclient.navigation
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.sp
 import dev.elysia.elysiaclient.AuthManager
 import dev.elysia.elysiaclient.ELogger
 import dev.elysia.elysiaclient.components.Sidebar
-import dev.elysia.elysiaclient.components.TrustedServer
 import dev.elysia.elysiaclient.pages.AuthLoadingPage
 import dev.elysia.elysiaclient.pages.AuthPage
 import dev.elysia.elysiaclient.pages.ServersPage
 import dev.elysia.elysiaclient.pages.SettingsPage
-import dev.elysia.elysiaclient.theme.ElysiaMuted
-import dev.elysia.elysiaclient.theme.ElysiaText
+import dev.elysia.elysiaclient.plugins.PluginManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.awt.Desktop
@@ -26,7 +19,13 @@ import java.net.URI
 
 @Composable
 fun AppNavigation() {
-    var isAuthorized by remember { mutableStateOf<Boolean?>(null) }
+    var isAuthorized by remember {
+        mutableStateOf<Boolean?>(null)
+    }
+
+    val pluginManager = remember {
+        PluginManager()
+    }
 
     LaunchedEffect(Unit) {
         AuthManager.setOnAuthStateChanged {
@@ -43,49 +42,43 @@ fun AppNavigation() {
     }
 
     when (isAuthorized) {
-        null -> {
-            AuthLoadingPage()
-        }
+        null -> AuthLoadingPage()
 
         false -> {
             AuthPage(
-                onAuthorize = ::openAuthPage
+                onAuthorize = ::openAuthPage,
             )
         }
 
         true -> {
-            AuthorizedApp()
+            AuthorizedApp(pluginManager)
         }
     }
 }
 
 @Composable
-private fun AuthorizedApp() {
-    val trustedServers = remember {
-        listOf(
-            TrustedServer(
-                id = "dead-cats",
-                name = "Dead Cats",
-                iconUrl = "https://cdn.discordapp.com/attachments/1537503255851040838/1552772213537644655/server-icon.png?ex=6ab8cd90&is=6ab77c10&hm=3c1e1803ed790593942cf09cef406537ce44013fc44981049c18b5431156280e&",
-
-                page = {
-                    DeadCatsPage()
-                },
-
-                isInitial = true,
-            )
-        )
+private fun AuthorizedApp(
+    pluginManager: PluginManager,
+) {
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            pluginManager.loadPlugins()
+        }
     }
 
-    val initialPage = remember(trustedServers) {
-        trustedServers
-            .firstOrNull { it.isInitial }
-            ?.let { AppPage.TrustedServer(it.id) }
-            ?: AppPage.Servers
+    if (!pluginManager.isLoaded) {
+        AuthLoadingPage()
+        return
     }
 
     var currentPage by remember {
         mutableStateOf<AppPage?>(null)
+    }
+
+    val initialPage = remember {
+        pluginManager.registry.defaultPageId
+            ?.let { AppPage.Plugin(it) }
+            ?: AppPage.Servers
     }
 
     LaunchedEffect(initialPage) {
@@ -96,16 +89,18 @@ private fun AuthorizedApp() {
 
     val page = currentPage ?: return
 
+    val servers = pluginManager.registry.servers
+
     val selectedServer = when (page) {
         is AppPage.TrustedServer -> page.serverId
         else -> null
     }
 
     Row(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
     ) {
         Sidebar(
-            trustedServers = trustedServers,
+            trustedServers = servers,
             selectedServer = selectedServer,
 
             onServerClick = { server ->
@@ -135,41 +130,48 @@ private fun AuthorizedApp() {
             }
 
             is AppPage.TrustedServer -> {
-                val server = trustedServers.find {
-                    it.id == page.serverId
-                }
+                val server = pluginManager.registry
+                    .getServer(page.serverId)
 
                 if (server != null) {
-                    server.page()
+                    val pluginPage = pluginManager.registry
+                        .getPage(server.pageId)
+
+                    if (pluginPage != null) {
+                        pluginPage.Content(
+                            context = PluginPageContextImpl(
+                                navigate = { target ->
+                                    currentPage = target
+                                },
+                            ),
+                        )
+                    } else {
+                        ServersPage()
+                    }
                 } else {
                     ServersPage()
                 }
             }
 
-            AppPage.Login -> {
+            is AppPage.Plugin -> {
+                val pluginPage = pluginManager.registry
+                    .getPage(page.pageId)
+
+                if (pluginPage != null) {
+                    pluginPage.Content(
+                        context = PluginPageContextImpl(
+                            navigate = { target ->
+                                currentPage = target
+                            },
+                        ),
+                    )
+                } else {
+                    ServersPage()
+                }
             }
+
+            AppPage.Login -> Unit
         }
-    }
-}
-
-@Composable
-private fun DeadCatsPage() {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = "DeadCats",
-            color = ElysiaText,
-            fontSize = 28.sp,
-        )
-
-        Text(
-            text = "Trusted Server Page",
-            color = ElysiaMuted,
-            fontSize = 14.sp,
-        )
     }
 }
 
