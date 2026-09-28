@@ -1,0 +1,51 @@
+name: Build ElysiaClient
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: windows
+          - os: macos-13
+            platform: macos-x64
+          - os: macos-14
+            platform: macos-arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Build JAR
+        if: runner.os != 'Windows'
+        run: ./gradlew :desktopApp:packageUberJarForCurrentOS
+
+      - name: Build JAR
+        if: runner.os == 'Windows'
+        run: .\gradlew.bat :desktopApp:packageUberJarForCurrentOS
+
+      - name: Rename JAR
+        shell: bash
+        run: |
+          mkdir -p artifact
+          cp desktopApp/build/compose/jars/*.jar artifact/ElysiaClient.jar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ElysiaClient-${{ matrix.platform }}
+          path: artifact/ElysiaClient.jar

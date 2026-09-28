@@ -31,3 +31,9 @@ compose.desktop {
         }
     }
 }
+
+tasks.jar {
+    manifest {
+        attributes["Main-Class"] = "dev.elysia.elysiaclient.MainKt"
+    }
+}
