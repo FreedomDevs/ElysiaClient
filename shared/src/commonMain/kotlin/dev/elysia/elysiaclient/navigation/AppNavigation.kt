@@ -9,6 +9,7 @@ import dev.elysia.elysiaclient.ELogger
 import dev.elysia.elysiaclient.components.Sidebar
 import dev.elysia.elysiaclient.pages.AuthLoadingPage
 import dev.elysia.elysiaclient.pages.AuthPage
+import dev.elysia.elysiaclient.pages.PluginsPage
 import dev.elysia.elysiaclient.pages.ServersPage
 import dev.elysia.elysiaclient.pages.SettingsPage
 import dev.elysia.elysiaclient.plugins.PluginManager
@@ -110,6 +111,10 @@ private fun AuthorizedApp(
             onLogout = {
                 AuthManager.logOut()
             },
+
+            onPlugins = {
+                currentPage = AppPage.Plugins
+            },
         )
 
         when (page) {
@@ -119,6 +124,10 @@ private fun AuthorizedApp(
 
             AppPage.Settings -> {
                 SettingsPage()
+            }
+
+            AppPage.Plugins -> {
+                PluginsPage(pluginManager)
             }
 
             is AppPage.TrustedServer -> {

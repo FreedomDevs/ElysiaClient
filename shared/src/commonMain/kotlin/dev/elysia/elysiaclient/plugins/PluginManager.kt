@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.elysia.elysiaclient.AppPaths
 import dev.elysia.elysiaclient.ELogger
+import dev.elysia.elysiaclient.api.ElysiaPlugin
 import java.io.File
 
 class PluginManager {
@@ -99,5 +100,21 @@ class PluginManager {
 
         loadedPlugins.clear()
         isLoaded = false
+    }
+
+    fun registerBuiltinPlugin(plugin: ElysiaPlugin) {
+        registry.registerPlugin(plugin)
+
+        val context = PluginContextImpl(
+            plugin = plugin,
+            registry = registry,
+        )
+
+        plugin.onLoad(context)
+        plugin.onEnable()
+
+        ELogger.info(
+            "Builtin plugin '${plugin.manifest.id}' enabled"
+        )
     }
 }

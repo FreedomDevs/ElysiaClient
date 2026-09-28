@@ -5,6 +5,8 @@ sealed interface AppPage {
     data object Servers : AppPage
     data object Settings : AppPage
 
+    data object Plugins : AppPage
+
     data class TrustedServer(
         val serverId: String,
     ) : AppPage

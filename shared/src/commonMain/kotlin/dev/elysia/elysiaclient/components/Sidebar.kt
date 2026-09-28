@@ -43,6 +43,7 @@ fun Sidebar(
     onServers: () -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
+    onPlugins: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -147,6 +148,10 @@ fun Sidebar(
                     onServers = {
                         menuOpen = false
                         onServers()
+                    },
+                    onPlugins = {
+                        menuOpen = false
+                        onPlugins()
                     },
                     onSettings = {
                         menuOpen = false

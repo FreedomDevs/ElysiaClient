@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Settings
@@ -25,6 +26,7 @@ import dev.elysia.elysiaclient.theme.ElysiaText
 @Composable
 fun SidebarMenu(
     onServers: () -> Unit,
+    onPlugins: () -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
 ) {
@@ -43,6 +45,12 @@ fun SidebarMenu(
             icon = Icons.Default.Language,
             title = "Все серверы",
             onClick = onServers,
+        )
+
+        SidebarMenuItem(
+            icon = Icons.Default.Extension,
+            title = "Плагины",
+            onClick = onPlugins,
         )
 
         SidebarMenuItem(

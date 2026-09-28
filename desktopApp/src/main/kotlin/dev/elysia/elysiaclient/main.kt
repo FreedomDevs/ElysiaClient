@@ -3,7 +3,6 @@ package dev.elysia.elysiaclient
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import dev.elysia.elysiaclient.api.server.TrustedServer
-import dev.elysia.elysiaclient.pages.ElysiumSMPPage
 import dev.elysia.elysiaclient.plugins.PluginManager
 
 fun main() {
@@ -13,7 +12,6 @@ fun main() {
 
     val pluginManager = PluginManager()
 
-    pluginManager.registry.registerBuiltinPage(ElysiumSMPPage())
     pluginManager.registry.registerBuiltinServer(
         TrustedServer(
             id = "elysium-smp",
@@ -25,7 +23,9 @@ fun main() {
 
     pluginManager.loadPlugins()
 
-    pluginManager.registry.setDefaultPage("elysium-smp:main")
+    pluginManager.registerBuiltinPlugin(
+        ElysiumSMPPlugin()
+    )
 
     application {
         Window(
