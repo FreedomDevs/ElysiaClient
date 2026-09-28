@@ -60,7 +60,9 @@ class PluginRegistry {
             )
         }
 
-        defaultPageId = pageId
+        if (defaultPageId == null) {
+            defaultPageId = pageId
+        }
     }
 
     fun getPage(pageId: String): PluginPage? {
@@ -69,5 +71,13 @@ class PluginRegistry {
 
     fun getServer(serverId: String): TrustedServer? {
         return _servers.firstOrNull { it.id == serverId }
+    }
+
+    fun registerBuiltinServer(server: TrustedServer) {
+        registerServer(server)
+    }
+
+    fun registerBuiltinPage(page: PluginPage) {
+        registerPage(page)
     }
 }

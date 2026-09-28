@@ -18,13 +18,9 @@ import java.awt.Desktop
 import java.net.URI
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(pluginManager: PluginManager) {
     var isAuthorized by remember {
         mutableStateOf<Boolean?>(null)
-    }
-
-    val pluginManager = remember {
-        PluginManager()
     }
 
     LaunchedEffect(Unit) {
@@ -60,17 +56,6 @@ fun AppNavigation() {
 private fun AuthorizedApp(
     pluginManager: PluginManager,
 ) {
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            pluginManager.loadPlugins()
-        }
-    }
-
-    if (!pluginManager.isLoaded) {
-        AuthLoadingPage()
-        return
-    }
-
     var currentPage by remember {
         mutableStateOf<AppPage?>(null)
     }
@@ -93,6 +78,13 @@ private fun AuthorizedApp(
 
     val selectedServer = when (page) {
         is AppPage.TrustedServer -> page.serverId
+
+        is AppPage.Plugin -> {
+            pluginManager.registry.servers
+                .firstOrNull { it.pageId == page.pageId }
+                ?.id
+        }
+
         else -> null
     }
 
