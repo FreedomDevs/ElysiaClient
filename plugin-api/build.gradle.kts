@@ -10,9 +10,7 @@ version = "0.1.0"
 kotlin {
     jvmToolchain(25)
 
-    jvm {
-        withJava()
-    }
+    jvm()
 
     sourceSets {
         commonMain.dependencies {
