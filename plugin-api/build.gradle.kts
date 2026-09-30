@@ -14,6 +14,8 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(project(":plugin-api:game-api"))
+
             compileOnly(compose.runtime)
             compileOnly(compose.foundation)
             compileOnly(compose.material3)

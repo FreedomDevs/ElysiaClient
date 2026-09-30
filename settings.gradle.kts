@@ -24,6 +24,7 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        maven("https://jitpack.io")
     }
 }
 
@@ -36,3 +37,4 @@ include(":desktopApp")
 include(":shared")
 include(":plugin-api")
 include(":test-plugin")
+include(":plugin-api:game-api")
